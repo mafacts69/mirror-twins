@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="hi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mirror Twins</title>
+<style>
+:root{--bg:#fff;--fg:#1d1b2e;--card:#f1effa;--wall:#3b3560;--a:#ff6b6b;--b:#4dabf7;--ac:#6c4cf1;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14122a;--fg:#f1effa;--card:#221f40;--wall:#6a62b8}}
+:root[data-theme="dark"]{--bg:#14122a;--fg:#f1effa;--card:#221f40;--wall:#6a62b8}
+html,body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif}
+body{max-width:420px;margin:0 auto;padding:12px;text-align:center}
+h1{font-size:22px;margin:4px 0}h3{margin:4px 0 10px}
+.bar{display:flex;justify-content:space-between;background:var(--card);border-radius:12px;padding:8px 12px;font-weight:600;margin:8px 0;font-size:14px}
+#board{display:grid;gap:3px;justify-content:center;margin:12px 0;touch-action:none}
+.c{width:min(8.5vw,40px);height:min(8.5vw,40px);border-radius:7px;background:var(--card);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--fg);font-size:14px}
+.w{background:var(--wall)}
+.gx{outline:3px dashed var(--a);outline-offset:-4px}
+.gy{outline:3px dashed var(--b);outline-offset:-4px}
+.pa{background:var(--a);color:#fff}.pb{background:var(--b);color:#fff}
+.pad{display:grid;grid-template-columns:repeat(3,64px);gap:6px;justify-content:center;margin:8px 0}
+button{font:inherit;border:0;border-radius:12px;padding:10px 14px;background:var(--ac);color:#fff;font-weight:600}
+.pad button{height:56px;font-size:22px}
+button.alt{background:var(--card);color:var(--fg)}
+button.fl{outline:4px solid #ffd43b}
+.row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:8px 0}
+#msg{min-height:22px;font-size:14px;font-weight:600}
+#ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:16px;z-index:9}
+.box{background:var(--bg);border-radius:16px;padding:16px;max-width:360px;width:100%;max-height:80vh;overflow:auto}
+.box button{display:block;width:100%;margin:8px 0}
+.lg{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.lb{padding:6px 0;margin:0!important;font-size:15px}
+.ad{background:var(--card);border-radius:8px;padding:8px;font-size:12px;opacity:.7;margin-top:12px}
+small{opacity:.75}
+</style></head><body>
+<button class="alt" id="lg" onclick="setLang()" style="position:absolute;top:8px;right:8px;padding:4px 8px;font-size:12px;border-radius:8px">🌍 English</button>
+<button class="alt" id="mu" onclick="toggleMusic()" style="position:absolute;top:8px;left:8px;padding:4px 8px;font-size:14px;border-radius:8px">🔊</button>
+<h1>🪞 Mirror Twins</h1>
+<div class="bar"><span id="lv"></span><span id="mv"></span><span id="hp"></span><span id="co"></span></div>
+<div style="position:relative"><div id="board"></div><div id="mo" onclick="restart()" style="display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--bg);color:var(--fg);border:2px solid #ff4d4d;border-radius:12px;padding:10px 16px;font-weight:700;font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.4);cursor:pointer;z-index:2">Moves khatam ho gaye!<br><span style="color:#ff4d4d">↺ Dobara khelein (yahan dabao)</span></div></div>
+<div id="msg"></div>
+<div class="pad">
+<span></span><button id="d0" onclick="mv(0,-1)">↑</button><span></span>
+<button id="d1" onclick="mv(-1,0)">←</button><button id="d2" onclick="mv(0,1)">↓</button><button id="d3" onclick="mv(1,0)">→</button>
+</div>
+<div class="row"><button class="alt" onclick="restart()">↺ Restart</button><button class="alt" onclick="hint()">💡 Hint (10🪙)</button><button class="alt" onclick="menu()">☰ Levels</button></div>
+<div class="row"><button class="alt" onclick="help()">❓ Kaise khelein</button><button class="alt" onclick="shop()">🛒 Shop</button></div>
+<small>🔴 ko ✕ par aur 🔵 ko ◯ par pahunchao, dono ek saath.</small>
+<div class="ad" id="ad">Banner ad yahan aayega (demo)</div>
+<div id="ov"><div class="box" id="bx"></div></div>
+<script>
+const $=id=>document.getElementById(id);
+let S={hearts:0,coins:30,stars:{},noads:false,seen:false,ch2:false,name:"",daily:{day:0,moves:0}};
+try{Object.assign(S,JSON.parse(localStorage.getItem("mt")||"{}"))}catch(e){}
+if(!S.lang)S.lang=/^(hi|en-IN)/i.test(navigator.language||"")?"hi":"en";
+const save=()=>{try{localStorage.setItem("mt",JSON.stringify(S))}catch(e){}};
+const D=[[0,-1,"↑"],[-1,0,"←"],[0,1,"↓"],[1,0,"→"]];
+const eq=(p,q)=>p[0]===q[0]&&p[1]===q[1];
+function rng(s){return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function step(W,a,b,dx,dy){const na=[a[0]+dx,a[1]+dy],nb=[b[0]-dx,b[1]+dy];return[W[na[1]][na[0]]?a:na,W[nb[1]][nb[0]]?b:nb];}
+function bfs(W,a,b,X,Y){const w=W[0].length,n=w*W.length,id=(p,q)=>(p[1]*w+p[0])*n+q[1]*w+q[0];
+const seen=new Set([id(a,b)]),q=[[a,b,0,null]];let i=0;
+while(i<q.length){const[p,r,d,f]=q[i++];if(eq(p,X)&&eq(r,Y))return{d,f};
+for(let j=0;j<4;j++){const[np,nr]=step(W,p,r,D[j][0],D[j][1]),k=id(np,nr);if(!seen.has(k)){seen.add(k);q.push([np,nr,d+1,f===null?j:f]);}}}return null;}
+const cache={};
+function gen(n,sd){const ck=n+":"+(sd||0);if(cache[ck])return cache[ck];
+const r=rng((sd||n)*7919+13),w=Math.min(5+Math.floor(n/13),8),h=Math.min(3+Math.floor(n/12),6),dens=Math.min(0.3,0.04+n*0.005),target=n<=50?3+Math.floor(n*0.4):23+Math.floor((n-50)*0.2);let best=null;
+for(let t=0;t<800;t++){const W=[],free=[];
+for(let y=0;y<h+2;y++){W.push([]);for(let x=0;x<w+2;x++){const wl=x==0||y==0||x==w+1||y==h+1||r()<dens;W[y].push(wl);if(!wl)free.push([x,y]);}}
+if(free.length<6)continue;const pk=()=>free.splice(Math.floor(r()*free.length),1)[0];
+const A=pk(),B=pk(),X=pk(),Y=pk(),R=bfs(W,A,B,X,Y);if(!R||R.d<2)continue;
+if(!best||Math.abs(R.d-target)<Math.abs(best.d-target))best={W,A,B,X,Y,d:R.d,lim:R.d+3};
+if(R.d>=target&&R.d<=target+2)break;}
+return cache[ck]=best;}
+let cur=1,lvl,A,B,moves=0,over=false,dm=false;
+function start(n){$("mo").style.display="none";dm=false;cur=n;lvl=gen(n);A=[...lvl.A];B=[...lvl.B];moves=0;over=false;$("msg").textContent="";draw();}
+function mv(dx,dy){if(over)return;if(!dm&&S.hearts<1){shop("Hearts khatam!");return;}
+const oa=A,ob=B;[A,B]=step(lvl.W,A,B,dx,dy);moves++;if(A===oa&&B===ob)sfx("bump");else{sfx("move");if(A===oa||B===ob)setTimeout(()=>sfx("bump"),70);}
+if(eq(A,lvl.X)&&eq(B,lvl.Y)){win();return;}
+if(moves>=lvl.lim){if(dm){over=true;draw();fail("Moves khatam! Daily mein heart nahi katta");return;}S.hearts--;save();over=true;draw();$("mo").style.display="block";sfx("lose");if(S.hearts<1){fail("Moves khatam, hearts bhi khatam!");shop("Hearts khatam! Ad dekho ya pack lo");}else fail("Moves khatam! −1 ❤");return;}
+draw();}
+function fail(t){$("msg").innerHTML='<span style="color:#ff4d4d">'+tr(t)+'</span> <button class="alt" style="display:inline-block;width:auto;padding:4px 10px;font-size:13px;margin-left:6px" onclick="restart()">↺ Restart</button>';}
+function restart(){if(dm){daily();return;}if(S.hearts<1){shop("Hearts khatam! Ad dekho ya pack lo");return;}start(cur);}
+function win(){over=true;draw();setTimeout(()=>sfx("win"),150);if(dm){dwin();return;}const s=moves<=lvl.d?3:moves<=lvl.d+2?2:1;S.stars[cur]=Math.max(S.stars[cur]||0,s);const g=10+s*5;S.coins+=g;save();draw();sync();
+const last=cur>=100;ov("<h3>"+(last?"🏆 Sab 100 levels poore!":"🎉 Level "+cur+" paar!")+"</h3><div style='font-size:32px'>"+"⭐".repeat(s)+"</div><p>"+moves+" moves (best "+lvl.d+") · +"+g+" 🪙</p>"+(last?"":btn("Agla level ➜","nxt()"))+btn("↺ Dobara khelo","cov();start(cur)","alt")+btn("☰ Levels","menu()","alt"));}
+function nxt(){cov();start(cur+1);}
+const btn=(t,f,c="")=>'<button class="'+c+'" onclick="'+f+'">'+t+"</button>";
+function hint(){if(over)return;if(S.coins<10){$("msg").textContent="Coins kam hain, shop dekho";return;}
+const R=bfs(lvl.W,A,B,lvl.X,lvl.Y);if(!R||R.f===null){$("msg").textContent="Hint nahi mila, restart karo";return;}
+S.coins-=10;save();draw();sfx("hint");$("msg").textContent="Hint: "+D[R.f][2]+" dabao";const e=$("d"+R.f);e.classList.add("fl");setTimeout(()=>e.classList.remove("fl"),1500);}
+function draw(){const g=lvl.W,bd=$("board");bd.style.gridTemplateColumns="repeat("+g[0].length+",auto)";let h="";
+for(let y=0;y<g.length;y++)for(let x=0;x<g[0].length;x++){let c="c",t="";const p=[x,y];
+if(g[y][x])c+=" w";if(eq(p,lvl.X)){c+=" gx";t="✕";}if(eq(p,lvl.Y)){c+=" gy";t="◯";}
+if(eq(p,A)){c+=" pa";t="A";}if(eq(p,B)){c+=" pb";t="B";}h+='<div class="'+c+'">'+t+"</div>";}
+bd.innerHTML=h;$("lv").textContent=dm?"📅 Daily":"Level "+cur+"/100";$("mv").textContent=moves+"/"+lvl.lim+" moves";$("hp").textContent="❤ "+S.hearts;$("co").textContent="🪙 "+S.coins;$("ad").style.display=S.noads?"none":"block";}
+function ov(h){$("bx").innerHTML=tr(h);$("ov").style.display="flex";}
+function cov(){$("ov").style.display="none";}
+function go(n){cov();start(n);}
+function menu(){let h="<h3>Levels</h3><div class='lg'>";
+for(let n=1;n<=100;n++){const lk=(n>1&&!S.stars[n-1]),s=S.stars[n]||0,f=lk?"void 0":"go("+n+")";
+h+='<button class="lb '+(lk?"alt":"")+'" onclick="'+f+'">'+(lk?"🔒":n)+"<br><small>"+(s?"⭐".repeat(s):"·")+"</small></button>";}
+ov(h+"</div>"+btn("Band karo","cov()","alt"));}
+function help(){S.seen=true;save();ov("<h3>Kaise khelein</h3><p style='text-align:left;font-size:14px;line-height:1.6'>1. Arrow dabao ya board par swipe karo.<br>2. <b>Arrows ka matlab</b> (🔴 aur 🔵 dono ek saath chalte hain):<br>↑ : dono upar jaati hain<br>↓ : dono neeche jaati hain<br>→ : 🔴 right jaati hai, 🔵 <b>left</b> jaati hai<br>← : 🔴 left jaati hai, 🔵 <b>right</b> jaati hai<br>(left-right par dono ulta chalti hain)<br>3. Deewar se takrane par us goli ka move ruk jaata hai, doosri chalti rahti hai.<br>4. Red dibba ko red box mein aur blue dibba ko blue box mein pahunchao.<br>5. Moves limit ke andar jeeto, warna −1 ❤. Kam moves = zyada ⭐.<br>6. 💡 <b>Hint (10🪙)</b>: dabane par 10 coins kat jaate hain aur game agla sahi move batata hai (wo arrow button peela chamakta hai). Ek hint mein sirf ek move batata hai, aage ke liye dobara hint lo.<br>7. 🪙 Coins level jeetne par milte hain: 15, 20 ya 25 (stars ke hisaab se). Coins kam hon to Shop se le sakte ho.</p>"+btn("Samajh gaya","cov()"));}
+function shop(m){ov("<h3>"+(m||"Shop")+"</h3>"+btn("▶ Ad dekho: +1 ❤ (free)","buy('ad')")+"<b>❤ Hearts</b>"+btn("5 ❤: $0.99","buy('h5')")+btn("20 ❤: $2.99","buy('h20')")+btn("50 ❤: $5.99","buy('h50')")+"<b>🪙 Coins</b>"+btn("200 🪙: $1.99","buy('c200')")+btn("600 🪙: $4.99","buy('c600')")+"<b>🚫 Ads</b>"+btn("No Ads (banner hatao): $2.99","buy('noads')")+btn("Band karo","cov()","alt")+"<small>Demo hai: payments aur ads asli nahi hain.</small>");}
+function buy(t){sfx("coin");const P={ad:["hearts",1],h5:["hearts",5],h20:["hearts",20],h50:["hearts",50],c200:["coins",200],c600:["coins",600],c1500:["coins",1500],c4000:["coins",4000]};if(P[t])S[P[t][0]]+=P[t][1];if(t=="noads")S.noads=true;save();cov();if(over&&S.hearts>0&&moves>=lvl.lim&&!(eq(A,lvl.X)&&eq(B,lvl.Y)))start(cur);else draw();}
+const dayKey=()=>{const d=new Date();return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();};
+function daily(){dm=true;cur=0;lvl=gen(40,dayKey());A=[...lvl.A];B=[...lvl.B];moves=0;over=false;draw();$("msg").textContent="Aaj ka challenge: kam se kam moves mein jeeto!";}
+function dwin(){const k=dayKey(),first=S.daily.day!==k;if(first){S.coins+=30;S.daily={day:k,moves:moves};}else if(moves<S.daily.moves)S.daily.moves=moves;save();draw();sync();
+ov("<h3>📅 Daily challenge paar!</h3><p>"+moves+" moves (best "+lvl.d+")"+(first?" · +30 🪙":"")+"<br>Aaj ka aapka best: "+S.daily.moves+" moves</p>"+btn("🏆 Leaderboard","board('day')")+btn("↺ Phir try karo","cov();daily()","alt")+btn("Band karo","cov()","alt"));}
+let DB=null,UID=null,CAN=true,bt="all";
+(async()=>{try{DB=await claude.use("db");const u=await claude.use("user");if(u){UID=await u.id();CAN=(await u.can("data.write"))!==false;}}catch(e){}})();
+async function sync(){if(!DB||!UID||!CAN||!S.name)return;try{const st=Object.values(S.stars).reduce((a,b)=>a+b,0);await DB.doc("lb/"+UID).set({name:S.name,stars:st,lvl:Object.keys(S.stars).length,dDay:S.daily.day,dMoves:S.daily.moves});}catch(e){}}
+const esc=s=>String(s).replace(/[&<>"']/g,c=>"&#"+c.charCodeAt(0)+";");
+function setName(){S.name=($("nm").value||"").trim().slice(0,12);save();sync();board(bt);}
+async function board(t){bt=t||"all";const tab=(l,k)=>btn(l,"board('"+k+"')",bt==k?"":"alt");
+const head="<h3>🏆 Leaderboard</h3><div class='row'>"+tab("Total ⭐","all")+"</div><p><input id='nm' maxlength='12' placeholder='Apna naam' value=\""+esc(S.name)+"\" style='padding:8px;border-radius:8px;width:60%'> <button style='display:inline-block;width:auto' onclick='setName()'>Save</button></p>";
+const tail=btn("Band karo","cov()","alt");ov(head+"<p>Load ho raha hai...</p>"+tail);let body;
+if(!DB||!UID)body="<small>Leaderboard abhi sirf Claude mein khulne par chalta hai. Asli app mein apna server lagega.</small>";
+else try{const c=DB.collection("lb"),q=bt=="all"?c.orderBy("stars","desc").limit(20):c.where("dDay","==",dayKey()).orderBy("dMoves","asc").limit(20),s=await q.get();
+body=(CAN?(S.name?"":"<small>Naam likh kar Save dabao, tab aap list mein aaoge.</small>"):"<small>Aap sirf list dekh sakte ho.</small>")+(s.empty?"<p><small>Abhi koi score nahi.</small></p>":"<div style='text-align:left;margin:8px 0'>"+s.docs.map((d,i)=>{const v=d.data();return (i+1)+". "+esc(v.name||"Player")+" · "+(bt=="all"?"⭐ "+v.stars+" (level "+v.lvl+")":v.dMoves+" moves")+(d.id==UID?" 👈":"")+"<br>";}).join("")+"</div>");}
+catch(e){body="<small>Leaderboard load nahi hua.</small>";}
+ov(head+body+tail);}
+const EN=[["Kaise khelein","How to play"],["1. Arrow dabao ya board par swipe karo.","1. Press the arrows or swipe on the board."],["<b>Arrows ka matlab</b> (🔴 aur 🔵 dono ek saath chalte hain):","<b>What the arrows do</b> (🔴 and 🔵 move together):"],["dono upar jaati hain","both move up"],["dono neeche jaati hain","both move down"],["🔴 right jaati hai, 🔵 <b>left</b> jaati hai","🔴 moves right, 🔵 moves <b>left</b>"],["🔴 left jaati hai, 🔵 <b>right</b> jaati hai","🔴 moves left, 🔵 moves <b>right</b>"],["(left-right par dono ulta chalti hain)","(left and right are mirrored)"],["3. Deewar se takrane par us goli ka move ruk jaata hai, doosri chalti rahti hai.","3. If a ball hits a wall it stays put; the other one keeps moving."],["4. Red dibba ko red box mein aur blue dibba ko blue box mein pahunchao.","4. Get the red ball to the red box and the blue ball to the blue box."],["5. Moves limit ke andar jeeto, warna −1 ❤. Kam moves = zyada ⭐.","5. Win within the move limit or lose 1 ❤. Fewer moves = more ⭐."],["dabane par 10 coins kat jaate hain aur game agla sahi move batata hai (wo arrow button peela chamakta hai). Ek hint mein sirf ek move batata hai, aage ke liye dobara hint lo.","costs 10 coins and shows the next correct move (the arrow button glows yellow). One hint shows one move; tap again for more."],["Coins level jeetne par milte hain: 15, 20 ya 25 (stars ke hisaab se). Coins kam hon to Shop se le sakte ho.","You earn 15, 20 or 25 coins per level (by stars). Need more? Visit the Shop."],["Samajh gaya","Got it"],["Band karo","Close"],["Sab 100 levels poore!","All 100 levels complete!"],["Agla level ➜","Next level ➜"],["↺ Dobara khelo","↺ Play again"],["Chapter 2 (levels 26 se 100) unlock karo","Unlock Chapter 2 (levels 26 to 100)"],["▶ Ad dekho: +1 ❤ (free)","▶ Watch ad: +1 ❤ (free)"],["No Ads (banner hatao): $2.99","No Ads (remove banner): $2.99"],["Demo hai: payments aur ads asli nahi hain.","Demo only: payments and ads are not real."],["Hearts khatam! Ad dekho ya pack lo","Out of hearts! Watch an ad or buy a pack"],["Hearts khatam!","Out of hearts!"],["Moves khatam, hearts bhi khatam!","Out of moves and hearts!"],["Moves khatam! −1 ❤","Out of moves! −1 ❤"],["Coins kam hain, shop dekho","Not enough coins, check the Shop"],["Hint nahi mila, restart karo","No hint found, restart"],["🎁 Aaj ke 5 free ❤ mil gaye!","🎁 Your 5 free ❤ for today!"]];
+function tr(s){if(S.lang!="en")return s;for(const[a,b]of EN)s=s.split(a).join(b);return s.replace(/Hint: (\S+) dabao/,"Hint: press $1").replace(/Level (\d+) paar!/,"Level $1 cleared!");}
+new MutationObserver(()=>{const m=$("msg");if(S.lang=="en"&&!m.children.length){const t=m.textContent,n=tr(t);if(n!==t)m.textContent=n;}}).observe($("msg"),{childList:true,characterData:true,subtree:true});
+function applyLang(){const en=S.lang=="en";document.querySelector("body>small").textContent=en?"Get 🔴 to ✕ and 🔵 to ◯, both together.":"🔴 ko ✕ par aur 🔵 ko ◯ par pahunchao, dono ek saath.";$("ad").textContent=en?"Banner ad goes here (demo)":"Banner ad yahan aayega (demo)";document.querySelector('[onclick="help()"]').textContent=en?"❓ How to play":"❓ Kaise khelein";$("mo").innerHTML=en?"Out of moves!<br><span style=\"color:#ff4d4d\">↺ Tap to play again</span>":"Moves khatam ho gaye!<br><span style=\"color:#ff4d4d\">↺ Dobara khelein (yahan dabao)</span>";$("lg").textContent=en?"🌍 Hinglish":"🌍 English";}
+function setLang(){S.lang=S.lang=="en"?"hi":"en";save();cov();applyLang();draw();$("msg").textContent="";}
+let AC=null,MG=null;
+function ctx(){try{if(S.music===false)return false;if(!AC){AC=new(window.AudioContext||window.webkitAudioContext)();MG=AC.createGain();MG.gain.value=0.25;MG.connect(AC.destination);}if(AC.state=="suspended")AC.resume();return true;}catch(e){return false;}}
+function tone(f,t,d,v,ty,f2){const o=AC.createOscillator(),g=AC.createGain();o.type=ty||"sine";o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(v,t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+d);o.connect(g);g.connect(MG);o.start(t);o.stop(t+d+0.05);}
+function sfx(k){if(!ctx())return;const t=AC.currentTime+0.01;
+if(k=="move"){tone(520,t,0.08,0.25,"sine");tone(390,t,0.08,0.2,"sine");}
+else if(k=="bump")tone(110,t,0.12,0.4,"square",70);
+else if(k=="win")[523,659,784,1047].forEach((f,i)=>tone(f,t+i*0.12,0.3,0.3,"triangle"));
+else if(k=="lose")[392,330,262,196].forEach((f,i)=>tone(f,t+i*0.16,0.3,0.3,"sawtooth"));
+else if(k=="hint")[880,1175].forEach((f,i)=>tone(f,t+i*0.1,0.2,0.25,"sine"));
+else if(k=="coin"){tone(988,t,0.1,0.25,"square");tone(1319,t+0.08,0.25,0.25,"square");}
+else if(k=="tap")tone(600,t,0.05,0.15,"sine");}
+function toggleMusic(){S.music=S.music===false;save();$("mu").textContent=S.music===false?"🔇":"🔊";sfx("tap");}
+document.addEventListener("pointerdown",e=>{if(e.target.closest&&e.target.closest("button")&&!e.target.closest(".pad")&&e.target.id!="mu")sfx("tap");});
+$("mu").textContent=S.music===false?"🔇":"🔊";
+document.addEventListener("keydown",e=>{const m={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]}[e.key];if(m){e.preventDefault();mv(...m);}});
+let t0;$("board").addEventListener("touchstart",e=>{t0=e.touches[0];},{passive:true});
+$("board").addEventListener("touchend",e=>{if(!t0)return;const t=e.changedTouches[0],dx=t.clientX-t0.clientX,dy=t.clientY-t0.clientY;if(Math.max(Math.abs(dx),Math.abs(dy))<25)return;
+if(Math.abs(dx)>Math.abs(dy))mv(Math.sign(dx),0);else mv(0,Math.sign(dy));});
+let n0=1;while(S.stars[n0]&&n0<100)n0++;applyLang();const dg=S.hDay!==dayKey();if(dg){S.hearts+=5;S.hDay=dayKey();save();}start(n0);if(dg)$("msg").textContent="🎁 Aaj ke 5 free ❤ mil gaye!";if(!S.seen)help();
+</script></body></html>
