@@ -31,8 +31,6 @@ button.fl{outline:4px solid #ffd43b}
 .ad{background:var(--card);border-radius:8px;padding:8px;font-size:12px;opacity:.7;margin-top:12px}
 small{opacity:.75}
 </style></head><body>
-<button class="alt" id="lg" onclick="setLang()" style="position:absolute;top:8px;right:8px;padding:4px 8px;font-size:12px;border-radius:8px">🌍 English</button>
-<button class="alt" id="mu" onclick="toggleMusic()" style="position:absolute;top:8px;left:8px;padding:4px 8px;font-size:14px;border-radius:8px">🔊</button>
 <h1>🪞 Mirror Twins</h1>
 <div class="bar"><span id="lv"></span><span id="mv"></span><span id="hp"></span><span id="co"></span></div>
 <div style="position:relative"><div id="board"></div><div id="mo" onclick="restart()" style="display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--bg);color:var(--fg);border:2px solid #ff4d4d;border-radius:12px;padding:10px 16px;font-weight:700;font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.4);cursor:pointer;z-index:2">Moves khatam ho gaye!<br><span style="color:#ff4d4d">↺ Dobara khelein (yahan dabao)</span></div></div>
@@ -42,7 +40,7 @@ small{opacity:.75}
 <button id="d1" onclick="mv(-1,0)">←</button><button id="d2" onclick="mv(0,1)">↓</button><button id="d3" onclick="mv(1,0)">→</button>
 </div>
 <div class="row"><button class="alt" onclick="restart()">↺ Restart</button><button class="alt" onclick="hint()">💡 Hint (10🪙)</button><button class="alt" onclick="menu()">☰ Levels</button></div>
-<div class="row"><button class="alt" onclick="help()">❓ Kaise khelein</button><button class="alt" onclick="shop()">🛒 Shop</button></div>
+<div class="row"><button class="alt" onclick="help()">❓ Kaise khelein</button><button class="alt" onclick="shop()">🛒 Shop</button><button class="alt" id="mu" onclick="toggleMusic()">🔊</button><button class="alt" id="lg" onclick="setLang()">🌍 English</button></div>
 <small>🔴 ko ✕ par aur 🔵 ko ◯ par pahunchao, dono ek saath.</small>
 <div class="ad" id="ad">Banner ad yahan aayega (demo)</div>
 <div id="ov"><div class="box" id="bx"></div></div>
